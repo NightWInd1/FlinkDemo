@@ -5,8 +5,11 @@ import org.apache.flink.api.common.functions.AggregateFunction;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.streaming.api.datastream.DataStreamSource;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
+import org.apache.flink.streaming.api.functions.windowing.WindowFunction;
 import org.apache.flink.streaming.api.windowing.assigners.TumblingProcessingTimeWindows;
 import org.apache.flink.streaming.api.windowing.time.Time;
+import org.apache.flink.streaming.api.windowing.windows.TimeWindow;
+import org.apache.flink.util.Collector;
 
 public class Flink07_AggregateWindow {
     public static void main(String[] args) throws Exception {
@@ -30,29 +33,39 @@ public class Flink07_AggregateWindow {
                 .keyBy(WaterSensor::getId)
                 .window(TumblingProcessingTimeWindows.of(Time.seconds(5)))
                 .aggregate(new AggregateFunction<WaterSensor, MyAvg, Double>() {
-                    //初始化累加器
-                    @Override
-                    public MyAvg createAccumulator() {
-                        return new MyAvg();
-                    }
-                    //
-                    @Override
-                    public MyAvg add(WaterSensor ws, MyAvg acc) {
-                        acc.sum += ws.getVc();
-                        acc.count+=1;
-                        return acc;
-                    }
-                    //获取结果
-                    @Override
-                    public Double getResult(MyAvg myAvg) {
-                        return myAvg.avg();
-                    }
+                               //初始化累加器
+                               @Override
+                               public MyAvg createAccumulator() {
+                                   return new MyAvg();
+                               }
 
-                    @Override
-                    public MyAvg merge(MyAvg myAvg, MyAvg acc1) {
-                        return null;
-                    }
-                })
+                               //
+                               @Override
+                               public MyAvg add(WaterSensor ws, MyAvg acc) {
+                                   acc.sum += ws.getVc();
+                                   acc.count += 1;
+                                   return acc;
+                               }
+
+                               //获取结果
+                               @Override
+                               public Double getResult(MyAvg myAvg) {
+                                   return myAvg.avg();
+                               }
+
+                               @Override
+                               public MyAvg merge(MyAvg myAvg, MyAvg acc1) {
+                                   return null;
+                               }
+                           }
+                        , (key, window, input, out) -> {
+
+                            Double avg = input.iterator().next();
+
+                            out.collect(avg+","+key+","+window);
+
+                        }
+                )
                 .print();
 
         env.execute();
