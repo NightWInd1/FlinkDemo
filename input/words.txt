@@ -2,3 +2,10 @@ hello flume
 hello spark
 hello flink
 hello hadoop
+
+
+sensor_1,1,10
+sensor_1,1,11
+sensor_1,1,12
+sensor_1,1,13
+sensor_1,1,14
